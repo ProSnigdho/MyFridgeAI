@@ -1,98 +1,169 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { COLORS, MOCK_INVENTORY, MOCK_RECIPES } from '../../src/constants/data'
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+
+
+const StatCard = ({ label, count, icon, color }: any) => (
+  <View style={[styles.statCard, { backgroundColor: color + '15' }]}>
+    <MaterialCommunityIcons name={icon} size={24} color={color} />
+    <View style={{ marginLeft: 10 }}>
+      <Text style={[styles.statCount, { color: color }]}>{count}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  </View>
+);
+
+const InventoryItem = ({ item }: any) => (
+  <View style={styles.itemCard}>
+    <View style={styles.itemIconBox}>
+      <MaterialCommunityIcons name="food-apple" size={24} color={COLORS.primary} />
+    </View>
+    <View style={{ flex: 1, marginHorizontal: 15 }}>
+      <Text style={styles.itemName}>{item.name}</Text>
+      <Text style={styles.itemQty}>{item.qty}</Text>
+      <View style={styles.progressContainer}>
+        <View style={[styles.progressBar, { width: `${item.progress * 100}%`, backgroundColor: item.color }]} />
+      </View>
+    </View>
+    <View style={{ alignItems: 'flex-end' }}>
+      <Text style={[styles.expiryText, { color: item.color }]}>{item.expiry}</Text>
+      <Text style={{ fontSize: 10, color: COLORS.gray }}>left</Text>
+    </View>
+  </View>
+);
+
+// --- Main Screen ---
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Hello, Sarah! 👋</Text>
+            <Text style={styles.subtitle}>Check your fridge items</Text>
+          </View>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Ionicons name="notifications-outline" size={24} color={COLORS.text} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchSection}>
+          <Ionicons name="search" size={20} color={COLORS.gray} style={{ marginLeft: 15 }} />
+          <TextInput 
+            placeholder="Search ingredients..." 
+            style={styles.searchInput}
+            placeholderTextColor={COLORS.gray}
+          />
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <StatCard label="Items" count="24" icon="fridge-outline" color={COLORS.primary} />
+          <StatCard label="Expiring" count="03" icon="clock-alert-outline" color={COLORS.danger} />
+        </View>
+
+        {/* Inventory Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Current Inventory</Text>
+          <TouchableOpacity onPress={() => router.push('/inventory')}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {MOCK_INVENTORY.map(item => (
+          <InventoryItem key={item.id} item={item} />
+        ))}
+
+        {/* Recipes Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Smart Recipes</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeList}>
+          {MOCK_RECIPES.map(recipe => (
+            <TouchableOpacity 
+              key={recipe.id} 
+              style={styles.recipeCard}
+              onPress={() => router.push(`/recipe/${recipe.id}`)}
+            >
+              <View style={[styles.recipeImage, { backgroundColor: recipe.color }]} />
+              <View style={styles.matchBadge}>
+                <Text style={styles.matchText}>{recipe.match} Match</Text>
+              </View>
+              <Text style={styles.recipeTitle}>{recipe.title}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
+                <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+                <Text style={styles.recipeTime}>{recipe.time}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+      </ScrollView>
+
+      {/* Floating Action Button (Scanner) */}
+      <TouchableOpacity 
+        style={styles.fab} 
+        onPress={() => router.push('/scanner')}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="scan" size={28} color="white" />
+        <Text style={styles.fabText}>SCAN</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
+// --- Styles ---
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 },
+  greeting: { fontSize: 24, fontWeight: 'bold', color: COLORS.text },
+  subtitle: { fontSize: 14, color: COLORS.gray, marginTop: 4 },
+  iconBtn: { backgroundColor: 'white', padding: 10, borderRadius: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05 },
+  searchSection: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 15, marginTop: 25, height: 50, elevation: 1 },
+  searchInput: { flex: 1, paddingHorizontal: 10, fontSize: 15 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 25 },
+  statCard: { width: '48%', padding: 15, borderRadius: 18, flexDirection: 'row', alignItems: 'center' },
+  statCount: { fontSize: 18, fontWeight: 'bold' },
+  statLabel: { fontSize: 12, color: COLORS.gray },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 30, marginBottom: 15 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
+  seeAll: { color: COLORS.primary, fontWeight: '600' },
+  itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 20, marginBottom: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.03 },
+  itemIconBox: { width: 48, height: 48, backgroundColor: '#F2FFF7', borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  itemName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
+  itemQty: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  progressContainer: { height: 6, backgroundColor: '#F0F0F0', borderRadius: 3, marginTop: 8, width: '90%' },
+  progressBar: { height: 6, borderRadius: 3 },
+  expiryText: { fontSize: 13, fontWeight: 'bold' },
+  recipeList: { marginBottom: 20 },
+  recipeCard: { width: 160, backgroundColor: 'white', borderRadius: 22, padding: 10, marginRight: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.05 },
+  recipeImage: { width: '100%', height: 100, borderRadius: 18 },
+  matchBadge: { backgroundColor: '#E8F8F5', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, marginTop: 10 },
+  matchText: { color: COLORS.primary, fontSize: 10, fontWeight: 'bold' },
+  recipeTitle: { fontSize: 15, fontWeight: 'bold', marginTop: 8, color: COLORS.text },
+  recipeTime: { fontSize: 11, color: COLORS.gray, marginLeft: 4 },
+  fab: { position: 'absolute', bottom: 30, right: 20, backgroundColor: COLORS.primary, paddingHorizontal: 22, paddingVertical: 15, borderRadius: 30, flexDirection: 'row', alignItems: 'center', elevation: 8, shadowColor: COLORS.primary, shadowOpacity: 0.4, shadowRadius: 10 },
+  fabText: { color: 'white', fontWeight: 'bold', marginLeft: 8, letterSpacing: 1 },
 });
