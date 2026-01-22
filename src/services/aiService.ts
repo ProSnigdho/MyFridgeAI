@@ -4,13 +4,13 @@ const API_KEY = process.env.EXPO_PUBLIC_API_KEY!;
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 /**
- * @param base64Data - ScannerScreen থেকে সরাসরি পাঠানো Base64 স্ট্রিং
+ * @param base64Data 
  */
 export const scanImageWithGemini = async (base64Data: string) => {
   try {
-    // ১. সঠিক মডেল সিলেক্ট করা (Gemini 1.5 Flash বর্তমানে স্ট্যাবল)
+   
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash", // 'gemini-2.5-flash' বদলে এটি ট্রাই করুন যদি 404 দেয়
+      model: "gemini-2.5-flash", 
     });
 
     const prompt = `Act as a fridge inventory assistant. List all food items visible in this image. 
@@ -20,7 +20,7 @@ export const scanImageWithGemini = async (base64Data: string) => {
 
     const image = {
       inlineData: {
-        data: base64Data, // সরাসরি base64 ডাটা ব্যবহার করা হচ্ছে
+        data: base64Data, 
         mimeType: "image/jpeg",
       },
     };
@@ -30,7 +30,7 @@ export const scanImageWithGemini = async (base64Data: string) => {
 
     console.log("AI Response Raw:", text);
 
-    // ২. JSON ক্লিনআপ লজিক (মাঝে মাঝে AI ```json ... ``` দিয়ে দেয়)
+ 
     const jsonMatch = text.match(/\[.*\]/s);
     if (jsonMatch) {
       const cleanJson = JSON.parse(jsonMatch[0]);

@@ -40,6 +40,7 @@ export default function ShoppingScreen() {
   const [loading, setLoading] = useState(true);
   const userUid = auth.currentUser?.uid;
 
+  
   useEffect(() => {
     if (!userUid) return;
     const q = query(collection(db, 'users', userUid, 'shoppingList'), orderBy('createdAt', 'desc'));
@@ -80,9 +81,6 @@ export default function ShoppingScreen() {
     }
   };
 
-  // ডিলিট ফাংশন (উন্নত করা হয়েছে)
-
-
   const deleteItem = async (id: string) => {
     if (!userUid || !id) return;
 
@@ -96,12 +94,9 @@ export default function ShoppingScreen() {
       }
     };
 
-    // Web এর জন্য window.confirm এবং Mobile এর জন্য Alert.alert
     if (Platform.OS === 'web') {
       const confirmed = window.confirm("Are you sure you want to delete this item?");
-      if (confirmed) {
-        await performDelete();
-      }
+      if (confirmed) await performDelete();
     } else {
       Alert.alert(
         "Remove Item",
@@ -114,13 +109,30 @@ export default function ShoppingScreen() {
     }
   };
 
-  const toggleCheck = async (id: string, currentStatus: boolean) => {
+  const toggleCheck = async (id: string, item: any) => {
     if (!userUid || !id) return;
+    
+    const itemRef = doc(db, 'users', userUid, 'shoppingList', id);
+    const newCheckedStatus = !item.checked;
+
     try {
-      const itemRef = doc(db, 'users', userUid, 'shoppingList', id);
-      await updateDoc(itemRef, { checked: !currentStatus });
+      
+      await updateDoc(itemRef, { checked: newCheckedStatus });
+
+      
+      if (newCheckedStatus) {
+        await addDoc(collection(db, 'users', userUid, 'inventory'), {
+          name: item.name || "Unknown Item",
+          qty: '1 unit',
+          expiry: '7 days',
+          progress: 1.0,
+          color: COLORS.primary,
+          createdAt: serverTimestamp()
+        });
+        console.log("Item moved to Inventory!");
+      }
     } catch (error) {
-      console.error("Toggle Error:", error);
+      console.error("Sync Error:", error);
     }
   };
 
@@ -167,14 +179,15 @@ export default function ShoppingScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }} // স্ক্রল ভিউ এরিয়া ফিক্স করা হয়েছে
+          style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 100 }}
         >
           {items.map(item => (
             <View key={item.id} style={styles.row}>
               <TouchableOpacity
                 style={[styles.check, item.checked && { backgroundColor: COLORS.primary }]}
-                onPress={() => toggleCheck(item.id, item.checked)}
+                
+                onPress={() => toggleCheck(item.id, item)}
               >
                 {item.checked && <Ionicons name="checkmark" size={16} color="white" />}
               </TouchableOpacity>
@@ -183,7 +196,6 @@ export default function ShoppingScreen() {
                 {item.name}
               </Text>
 
-              {/* ডিলিট বাটন - টাচ এরিয়া বড় করা হয়েছে */}
               <TouchableOpacity
                 onPress={() => deleteItem(item.id)}
                 style={styles.deleteBtn}
@@ -209,7 +221,7 @@ export default function ShoppingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'white', paddingHorizontal: 20 },
   title: { fontSize: 28, fontWeight: 'bold', marginVertical: 15, color: '#333' },
-  searchContainer: { zIndex: 100, marginBottom: 10 }, // সাজেশন বক্সের জন্য বড় zIndex
+  searchContainer: { zIndex: 100, marginBottom: 10 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -246,8 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8F8F8',
-    zIndex: 1 // রো গুলোকে নিচের লেয়ারে রাখা হয়েছে
+    borderBottomColor: '#F8F8F8'
   },
   check: {
     width: 26,

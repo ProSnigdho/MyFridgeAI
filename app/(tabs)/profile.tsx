@@ -2,8 +2,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { signOut } from 'firebase/auth'; // Firebase Logout
-import { auth } from '../../src/services/firebase'; // Firebase Config
+import { signOut } from 'firebase/auth'; 
+import { auth } from '../../src/services/firebase'; 
 import { useRouter } from 'expo-router';
 import { COLORS } from '../../src/constants/data';
 
@@ -12,7 +12,7 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // বর্তমানে লগইন থাকা ইউজারের তথ্য সেট করা
+
     if (auth.currentUser) {
       setUser(auth.currentUser);
     }
@@ -30,7 +30,7 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               await signOut(auth);
-              // লগআউট হওয়ার পর অটোমেটিক রুট লেআউট আপনাকে লগইন পেজে নিয়ে যাবে
+
               router.replace('/(auth)/login');
             } catch (error) {
               console.error("Logout Error: ", error);

@@ -1,24 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
+import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
-import { auth, db } from '../../src/services/firebase';
 import { COLORS } from '../../src/constants/data';
+import { auth, db } from '../../src/services/firebase';
 
 export default function InventoryScreen() {
   const params = useLocalSearchParams();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ১. ডাটাবেস থেকে আইটেম লোড করা (Real-time)
+
   useEffect(() => {
     const userUid = auth.currentUser?.uid;
     if (!userUid) return;
 
     const inventoryRef = collection(db, 'users', userUid, 'inventory');
-    // নতুন আইটেমগুলো সবার উপরে দেখানোর জন্য orderBy ব্যবহার করা হয়েছে
+
     const q = query(inventoryRef, orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -33,7 +33,7 @@ export default function InventoryScreen() {
     return () => unsubscribe();
   }, []);
 
-  // ২. স্ক্যানার থেকে নতুন আইটেম আসলে তা Firebase-এ সেভ করা
+
   useEffect(() => {
     const saveNewItems = async () => {
       if (params.newItems) {
@@ -48,9 +48,9 @@ export default function InventoryScreen() {
               name: item.name,
               qty: item.qty || '1 unit',
               expiry: item.expiry || item.days || 'N/A',
-              progress: 0.7, // আপনি চাইলে লজিক দিয়ে এটি পরিবর্তন করতে পারেন
+              progress: 0.7, 
               color: COLORS.primary,
-              createdAt: serverTimestamp() // সময় সেভ করে রাখা হচ্ছে
+              createdAt: serverTimestamp() 
             });
           }
         }
@@ -88,14 +88,14 @@ export default function InventoryScreen() {
                   </Text>
                 </View>
                 <View style={styles.progressContainer}>
-                  <View 
+                  <View
                     style={[
-                      styles.progressFill, 
-                      { 
-                        width: `${(item.progress || 0.5) * 100}%`, 
-                        backgroundColor: item.color || COLORS.primary 
+                      styles.progressFill,
+                      {
+                        width: `${(item.progress || 0.5) * 100}%`,
+                        backgroundColor: item.color || COLORS.primary
                       }
-                    ]} 
+                    ]}
                   />
                 </View>
               </View>

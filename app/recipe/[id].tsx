@@ -32,7 +32,7 @@ export default function RecipeDetail() {
           </View>
         </View>
 
-        {/* Back Button */}
+     
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>

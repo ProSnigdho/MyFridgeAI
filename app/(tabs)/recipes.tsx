@@ -24,7 +24,7 @@ export default function RecipesScreen() {
 
   const userUid = auth.currentUser?.uid;
 
-  // ১. লোড হওয়া ডাটা Firestore থেকে রিড করা (যাতে অ্যাপ খুললেই আগের গুলো দেখা যায়)
+
   const loadSavedRecipes = async () => {
     if (!userUid) return;
     setLoading(true);
@@ -44,12 +44,12 @@ export default function RecipesScreen() {
     loadSavedRecipes();
   }, []);
 
-  // ২. নতুন রেসিপি জেনারেট করা এবং আগের গুলোর সাথে যোগ করা
+ 
   const generateMoreRecipes = async () => {
     if (!userUid) return;
     setLoading(true);
     try {
-      // ইনভেন্টরি এবং শপিং লিস্ট থেকে আইটেম সংগ্রহ
+      
       const invSnapshot = await getDocs(collection(db, 'users', userUid, 'inventory'));
       const shopSnapshot = await getDocs(collection(db, 'users', userUid, 'shoppingList'));
       
@@ -63,16 +63,15 @@ export default function RecipesScreen() {
         return;
       }
 
-      // AI থেকে নতুন রেসিপি আনা
       const newAIRecipes = await generateRecipesWithAI(allIngredients);
 
-      // Firestore-এ সেভ করা যাতে পরের বার থাকে
+      
       for (const recipe of newAIRecipes) {
         const recipeWithTime = { ...recipe, createdAt: new Date() };
         await addDoc(collection(db, 'users', userUid, 'cachedRecipes'), recipeWithTime);
       }
 
-      // UI আপডেট (আগের ডাটার সাথে নতুন ডাটা যোগ করা)
+ 
       setRecipes(prev => [...newAIRecipes, ...prev]);
 
     } catch (error) {
@@ -83,7 +82,7 @@ export default function RecipesScreen() {
     }
   };
 
-  // ৩. অল ক্লিয়ার করার অপশন (প্রয়োজন হলে)
+
   const clearAllRecipes = async () => {
     if (!userUid) return;
     const snapshot = await getDocs(collection(db, 'users', userUid, 'cachedRecipes'));

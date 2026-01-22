@@ -13,7 +13,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace('/(tabs)/inventory'); // লগইন সফল হলে ইনভেন্টরিতে নিয়ে যাবে
+      router.replace('/(tabs)/inventory');
     } catch (error: any) {
       Alert.alert("Login Error", error.message);
     }

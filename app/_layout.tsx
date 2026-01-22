@@ -8,7 +8,7 @@ export default function RootLayout() {
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState<any>(null);
   const router = useRouter();
-  const segments = useSegments(); // এটি চেক করে আপনি এখন কোন পেজে আছেন
+  const segments = useSegments(); 
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -25,10 +25,10 @@ export default function RootLayout() {
     const inAuthGroup = segments[0] === '(auth)';
     
     if (!user && !inAuthGroup && segments[0] !== 'onboarding') {
-      // ইউজার লগইন না থাকলে এবং অনবোর্ডিং শেষ হলে লগইন পেজে পাঠাও
+      
       router.replace('/(auth)/login');
     } else if (user && inAuthGroup) {
-      // ইউজার লগইন থাকলে তাকে ইনভেন্টরিতে পাঠিয়ে দাও
+  
       router.replace('/(tabs)/inventory');
     }
   }, [user, initializing, segments]);

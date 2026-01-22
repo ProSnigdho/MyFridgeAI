@@ -21,11 +21,11 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      // ১. Firebase Auth দিয়ে ইউজার তৈরি
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // ২. Firestore-এ ইউজারের জন্য প্রোফাইল ডকুমেন্ট তৈরি
+ 
       await setDoc(doc(db, "users", user.uid), {
         name: name,
         email: email,
