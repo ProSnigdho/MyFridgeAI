@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,42 +12,45 @@ export default function ScannerScreen() {
   const cameraRef = useRef<CameraView>(null);   
   const [loading, setLoading] = useState(false);
 
-    
+  // ছবি তোলা এবং AI দিয়ে এনালাইসিস করার ফাংশন
   const takePicture = async () => {
     if (cameraRef.current && !loading) {
       try {
         setLoading(true);
         
+        // ছবি ক্যাপচার (Base64 ফরম্যাটে কারণ Gemini এটি গ্রহণ করে)
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.5, 
           base64: true,
         });
 
-        if (photo) {
-          
-          const detectedItems = await scanImageWithGemini(photo.uri);
+        if (photo && photo.base64) {
+          // AI Service কল করা (aiService.ts এ গিয়ে Gemini API হিট করবে)
+          const detectedItems = await scanImageWithGemini(photo.base64);
 
-          if (detectedItems) {
-            console.log("AI Detected:", detectedItems);
+          if (detectedItems && detectedItems.length > 0) {
+            console.log("AI Detected Items:", detectedItems);
             
-            router.push({
+            // ডাটা সফলভাবে পাওয়া গেলে Inventory পেজে পাঠিয়ে দেয়া
+            // সেখানে useEffect এই ডাটাগুলো অটোমেটিক Firebase-এ সেভ করে নেবে
+            router.replace({
               pathname: '/(tabs)/inventory',
               params: { newItems: JSON.stringify(detectedItems) }
             });
           } else {
-            alert("AI could not detect any items. Please try again.");
+            Alert.alert("Detection Failed", "AI could not identify food. Try a clearer angle.");
           }
         }
       } catch (error) {
         console.error("Capture Error:", error);
-        alert("Something went wrong while scanning.");
+        Alert.alert("Error", "Something went wrong while scanning the image.");
       } finally {
         setLoading(false);
       }
     }
   };
 
-  
+  // পারমিশন চেক
   if (!permission) return <View style={styles.center} />;
   
   if (!permission.granted) {
@@ -64,18 +67,20 @@ export default function ScannerScreen() {
 
   return (
     <View style={styles.container}>
-      
       <CameraView ref={cameraRef} style={styles.camera} facing="back">
         <View style={styles.overlay}>
           
-          
+          {/* Close Button */}
           <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
             <Ionicons name="close-circle" size={40} color="white" />
           </TouchableOpacity>
           
-          
+          {/* Visual Scan Frame */}
           <View style={styles.scanContainer}>
-            <View style={[styles.scanFrame, loading && { borderColor: COLORS.secondary }]} />
+            <View style={[
+              styles.scanFrame, 
+              loading && { borderColor: COLORS.secondary, borderStyle: 'solid' }
+            ]} />
             {loading && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color={COLORS.secondary} />
@@ -84,7 +89,7 @@ export default function ScannerScreen() {
             )}
           </View>
 
-          
+          {/* Bottom Controls */}
           <View style={styles.bottomBar}>
             {!loading && <Text style={styles.instruction}>Point at food items to scan</Text>}
             
@@ -108,21 +113,27 @@ const styles = StyleSheet.create({
   camera: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   permissionText: { textAlign: 'center', marginVertical: 20, fontSize: 16, color: COLORS.gray },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'space-between', padding: 30 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'space-between', padding: 30 },
   closeBtn: { marginTop: 20, alignSelf: 'flex-start' },
   scanContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scanFrame: { 
     width: 280, 
-    height: 280, 
+    height: 350, 
     borderWidth: 2, 
-    borderColor: COLORS.primary, 
+    borderColor: 'white', 
     borderRadius: 30, 
     borderStyle: 'dashed' 
   },
-  loadingOverlay: { position: 'absolute', alignItems: 'center' },
-  loadingText: { color: 'white', marginTop: 10, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.5)', padding: 5, borderRadius: 5 },
+  loadingOverlay: { 
+    position: 'absolute', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0,0,0,0.7)', 
+    padding: 20, 
+    borderRadius: 20 
+  },
+  loadingText: { color: 'white', marginTop: 10, fontWeight: 'bold' },
   bottomBar: { alignItems: 'center', marginBottom: 20 },
-  instruction: { color: 'white', marginBottom: 20, fontSize: 16, fontWeight: '500', textAlign: 'center' },
+  instruction: { color: 'white', marginBottom: 20, fontSize: 16, fontWeight: '500', textAlign: 'center', textShadowColor: 'black', textShadowRadius: 2 },
   captureBtn: { 
     width: 80, 
     height: 80, 
