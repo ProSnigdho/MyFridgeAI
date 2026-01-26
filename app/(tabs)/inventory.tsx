@@ -1,129 +1,203 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  addDoc, collection, deleteDoc, doc, onSnapshot,
+  orderBy, query, serverTimestamp
+} from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView, StyleSheet, Text,
+  TextInput,
+  TouchableOpacity, View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '../../src/constants/data';
 import { auth, db } from '../../src/services/firebase';
 
 export default function InventoryScreen() {
   const params = useLocalSearchParams();
+  const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const [newItem, setNewItem] = useState({ name: '', qty: '', days: '7' });
+
+  const userUid = auth.currentUser?.uid;
 
 
   useEffect(() => {
-    const userUid = auth.currentUser?.uid;
     if (!userUid) return;
-
-    const inventoryRef = collection(db, 'users', userUid, 'inventory');
-
-    const q = query(inventoryRef, orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'users', userUid, 'inventory'), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedItems = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const fetchedItems = snapshot.docs.map(doc => {
+        const data = doc.data();
+
+
+        let totalDays = 7;
+        if (data.expiry && typeof data.expiry === 'string') {
+          totalDays = parseInt(data.expiry.split(' ')[0]) || 7;
+        } else if (typeof data.expiry === 'number') {
+          totalDays = data.expiry;
+        }
+
+        const createdDate = data.createdAt?.toDate() || new Date();
+        const today = new Date();
+        const diffTime = today.getTime() - createdDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        const remaining = totalDays - diffDays;
+        const progress = totalDays > 0 ? Math.max(0, remaining / totalDays) : 0;
+
+        return {
+          id: doc.id,
+          ...data,
+          remainingDays: remaining > 0 ? remaining : 0,
+          currentProgress: progress
+        };
+      });
       setItems(fetchedItems);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [userUid]);
 
 
-  useEffect(() => {
-    const saveNewItems = async () => {
-      if (params.newItems) {
-        const detectedItems = JSON.parse(params.newItems as string);
-        const userUid = auth.currentUser?.uid;
+  const handleAddManual = async () => {
+    if (!newItem.name || !userUid) return;
+    try {
+      await addDoc(collection(db, 'users', userUid, 'inventory'), {
+        name: newItem.name,
+        qty: newItem.qty || '1 unit',
+        expiry: `${newItem.days} days`,
+        createdAt: serverTimestamp(),
+      });
+      setModalVisible(false);
+      setNewItem({ name: '', qty: '', days: '7' });
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
-        if (userUid) {
-          const inventoryRef = collection(db, 'users', userUid, 'inventory');
-
-          for (const item of detectedItems) {
-            await addDoc(inventoryRef, {
-              name: item.name,
-              qty: item.qty || '1 unit',
-              expiry: item.expiry || item.days || 'N/A',
-              progress: 0.7, 
-              color: COLORS.primary,
-              createdAt: serverTimestamp() 
-            });
-          }
+ 
+  const markAsUsed = (id: string) => {
+    Alert.alert("Item Used", "Remove this from your fridge?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Yes, Used", style: "destructive", onPress: async () => {
+          await deleteDoc(doc(db, 'users', userUid!, 'inventory', id));
         }
       }
-    };
-
-    saveNewItems();
-  }, [params.newItems]);
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Inventory</Text>
-        <TouchableOpacity style={styles.addBtn}>
-          <Ionicons name="add" size={24} color="white" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Fridge</Text>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/scanner')}>
+            <Ionicons name="camera" size={24} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Ionicons name="add" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
+        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50 }} />
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-          {items.length > 0 ? (
-            items.map(item => (
-              <View key={item.id} style={styles.card}>
-                <View style={styles.cardTop}>
-                  <View>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemQty}>{item.qty}</Text>
-                  </View>
-                  <Text style={[styles.expiryText, { color: item.color || COLORS.primary }]}>
-                    {item.expiry} left
-                  </Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          {items.map(item => (
+            <View key={item.id} style={styles.card}>
+              <View style={styles.cardInfo}>
+                <View>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemQty}>{item.qty}</Text>
                 </View>
-                <View style={styles.progressContainer}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${(item.progress || 0.5) * 100}%`,
-                        backgroundColor: item.color || COLORS.primary
-                      }
-                    ]}
-                  />
-                </View>
+                <TouchableOpacity onPress={() => markAsUsed(item.id)}>
+                  <MaterialCommunityIcons name="check-circle-outline" size={28} color="#ddd" />
+                </TouchableOpacity>
               </View>
-            ))
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="basket-outline" size={80} color={COLORS.gray} />
-              <Text style={styles.emptyText}>Your inventory is empty!</Text>
+
+              <View style={styles.progressRow}>
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressFill, {
+                    width: `${item.currentProgress * 100}%`,
+                    backgroundColor: item.remainingDays < 2 ? '#FF4444' : COLORS.primary
+                  }]} />
+                </View>
+                <Text style={[styles.expiryText, { color: item.remainingDays < 2 ? '#FF4444' : '#666' }]}>
+                  {item.remainingDays} days left
+                </Text>
+              </View>
             </View>
-          )}
+          ))}
         </ScrollView>
       )}
+
+      {/* Manual Add Modal */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Item Manually</Text>
+            <TextInput
+              placeholder="Item Name (e.g. Milk)"
+              style={styles.input}
+              onChangeText={(t) => setNewItem({ ...newItem, name: t })}
+            />
+            <TextInput
+              placeholder="Quantity (e.g. 2 liters)"
+              style={styles.input}
+              onChangeText={(t) => setNewItem({ ...newItem, qty: t })}
+            />
+            <TextInput
+              placeholder="Expiry in Days (default 7)"
+              keyboardType="numeric"
+              style={styles.input}
+              onChangeText={(t) => setNewItem({ ...newItem, days: t })}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelBtn}>
+                <Text>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleAddManual} style={styles.saveBtn}>
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Add to Fridge</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: '#F9FAFB', paddingHorizontal: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 20 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.text },
-  addBtn: { backgroundColor: COLORS.primary, width: 45, height: 45, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
-  card: { backgroundColor: 'white', padding: 20, borderRadius: 20, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  itemName: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
-  itemQty: { color: COLORS.gray, fontSize: 14, marginTop: 4 },
-  expiryText: { fontWeight: 'bold' },
-  progressContainer: { height: 8, backgroundColor: '#f0f0f0', borderRadius: 4 },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#111827' },
+  headerIcon: { marginRight: 15, backgroundColor: '#E8F5E9', padding: 10, borderRadius: 12 },
+  addBtn: { backgroundColor: COLORS.primary, padding: 10, borderRadius: 12, elevation: 3 },
+  card: { backgroundColor: 'white', padding: 18, borderRadius: 24, marginBottom: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05 },
+  cardInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  itemName: { fontSize: 18, fontWeight: 'bold', color: '#1F2937' },
+  itemQty: { color: '#6B7280', fontSize: 14 },
+  progressRow: { flexDirection: 'row', alignItems: 'center' },
+  progressBarBg: { flex: 1, height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, marginRight: 10 },
   progressFill: { height: 8, borderRadius: 4 },
-  emptyContainer: { alignItems: 'center', marginTop: 100 },
-  emptyText: { fontSize: 16, color: COLORS.gray, marginTop: 10 }
+  expiryText: { fontSize: 12, fontWeight: '700' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: 'white', borderRadius: 24, padding: 25 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+  input: { backgroundColor: '#F3F4F6', padding: 15, borderRadius: 12, marginBottom: 15 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  cancelBtn: { padding: 15, marginRight: 10 },
+  saveBtn: { backgroundColor: COLORS.primary, padding: 15, borderRadius: 12 }
 });

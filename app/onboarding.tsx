@@ -2,9 +2,18 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { auth } from '../src/services/firebase';
 
 export default function Onboarding() {
   const router = useRouter();
+
+  const handleGetStarted = () => {
+    if (auth.currentUser) {
+      router.replace('/(tabs)/inventory');
+    } else {
+      router.replace('/(auth)/login');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -21,7 +30,7 @@ export default function Onboarding() {
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.button} 
-          onPress={() => router.push('/(auth)/login')}
+          onPress={handleGetStarted}
         >
           <Text style={styles.buttonText}>Get Started</Text>
         </TouchableOpacity>
