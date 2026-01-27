@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "235669042381",
+    "project_id": "gen-lang-client-0593006741",
+    "storage_bucket": "gen-lang-client-0593006741.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:235669042381:android:cd6e70a05f8bfe6e6ea584",
+        "android_client_info": {
+          "package_name": "com.snigdho888.MyFridgeAI"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "235669042381-egtvpjpr8u8crnr47ikm7siu7h07fu1s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.snigdho888.MyFridgeAI",
+            "certificate_hash": "070f12c753a123c1f7943c20d7497ad5574aaabf"
+          }
+        },
+        {
+          "client_id": "235669042381-nmpqr1702vspu6iqmn4p62u0q12m2ato.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxGV_SGsWrBQ3k77s7V0jhpBxSS8LalZk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "235669042381-nmpqr1702vspu6iqmn4p62u0q12m2ato.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

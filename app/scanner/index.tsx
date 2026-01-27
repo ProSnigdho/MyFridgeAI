@@ -22,28 +22,31 @@ export default function ScannerScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
 
   const takePicture = async () => {
-    if (cameraRef.current && !isCapturing) {
-      setIsCapturing(true); 
-      
-      try {
-        const photoPromise = cameraRef.current.takePictureAsync({
-          quality: 0.4, 
-          base64: true,
-        });
+  if (cameraRef.current && !isCapturing) {
+    setIsCapturing(true); 
+    
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.4, 
+        base64: true,
+      });
 
-        router.replace({
-          pathname: '/scanner/processing',
-          params: { isPending: 'true' } 
-        });
+      router.push({
+        pathname: '/scanner/processing',
+        params: { 
+          imageBase64: photo.base64,
+          isPending: 'true' 
+        } 
+      });
 
-        const photo = await photoPromise;
-
-      } catch (error) {
-        setIsCapturing(false);
-        Alert.alert("Error", "Could not capture photo.");
-      }
+    } catch (error) {
+      console.log("Capture Error:", error);
+      Alert.alert("Error", "Could not capture photo.");
+    } finally {
+      setIsCapturing(false);
     }
-  };
+  }
+};
 
   if (!permission) return <View style={styles.darkContainer} />;
   
